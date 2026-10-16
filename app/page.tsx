@@ -299,9 +299,23 @@ export default function CustomerPortal() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not initiate payment');
 
+      // Ensure Razorpay SDK is loaded
+      let RazorpayClass = (window as any).Razorpay;
+      if (!RazorpayClass && typeof window !== 'undefined') {
+        await new Promise<void>((resolve) => {
+          const s = document.createElement('script');
+          s.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          s.async = true;
+          s.onload = () => resolve();
+          s.onerror = () => resolve();
+          document.head.appendChild(s);
+        });
+        RazorpayClass = (window as any).Razorpay;
+      }
+
       // Check if Razorpay is available
-      if ((window as any).Razorpay && data.adapter === 'live') {
-        const rzp = new (window as any).Razorpay({
+      if (RazorpayClass && data.adapter === 'live') {
+        const rzp = new RazorpayClass({
           key: data.razorpayKeyId,
           amount: data.amountPaise,
           currency: 'INR',
