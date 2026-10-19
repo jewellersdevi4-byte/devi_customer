@@ -112,6 +112,16 @@ const money = (paiseStr: string | number | bigint) => {
   return '₹' + (n / 100n).toLocaleString('en-IN') + '.' + String(n % 100n).padStart(2, '0');
 };
 
+async function portalFetch(url: string, options: RequestInit = {}) {
+  const timeout = AbortSignal.timeout(30_000);
+  try {
+    return await fetch(url, { ...options, cache: 'no-store', signal: timeout });
+  } catch (error) {
+    if (timeout.aborted) throw new Error('The server is taking too long. Please retry. For a payment, check its status before submitting again.');
+    throw error;
+  }
+}
+
 export default function CustomerPortal() {
   const [lang, setLang] = useState<'kn' | 'en'>('en');
   const [token, setToken] = useState<string>('');
@@ -191,7 +201,7 @@ export default function CustomerPortal() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/v1/customer-portal/login', {
+      const res = await portalFetch('/api/v1/customer-portal/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ identifier })
@@ -219,7 +229,7 @@ export default function CustomerPortal() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch('/api/v1/customer-portal/me', {
+      const res = await portalFetch('/api/v1/customer-portal/me', {
         headers: { Authorization: `Bearer ${authToken}` }
       });
       let data: any = {};
@@ -285,7 +295,7 @@ export default function CustomerPortal() {
     }
 
     try {
-      const res = await fetch('/api/v1/customer-portal/pay-online', {
+      const res = await portalFetch('/api/v1/customer-portal/pay-online', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -363,7 +373,7 @@ export default function CustomerPortal() {
     signature?: string
   ) {
     try {
-      const res = await fetch('/api/v1/customer-portal/complete-online-payment', {
+      const res = await portalFetch('/api/v1/customer-portal/complete-online-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -406,7 +416,7 @@ export default function CustomerPortal() {
 
     try {
       const paiseAmount = (BigInt(manualAmount) * 100n).toString();
-      const res = await fetch('/api/v1/customer-portal/submit-manual-proof', {
+      const res = await portalFetch('/api/v1/customer-portal/submit-manual-proof', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
